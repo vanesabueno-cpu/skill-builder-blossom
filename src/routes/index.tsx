@@ -287,7 +287,6 @@ function Wizard() {
                       cv.lang === l.code ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"
                     }`}
                   >
-                    <span className="mr-2 text-2xl">{l.flag}</span>
                     {l.label}
                   </button>
                 ))}
