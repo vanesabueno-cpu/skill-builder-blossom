@@ -34,7 +34,7 @@ function Centered({ title, text }: { title: string; text: string }) {
 function SharedCv() {
   const { payload } = Route.useLoaderData();
   if (!payload) return <Centered title="Este enlace ya no está disponible" text="Los enlaces caducan a los 90 días." />;
-  const cv = { ...emptyCv(), ...(payload as Partial<CvData>) } as CvData;
+  const cv = { ...emptyCv(), ...(JSON.parse(payload) as Partial<CvData>) } as CvData;
 
   return (
     <main className="min-h-screen py-8">

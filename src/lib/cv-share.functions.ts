@@ -32,7 +32,7 @@ export const getCvShare = createServerFn({ method: "GET" })
       .eq("token", data.token)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!row) return { payload: null };
-    if (new Date(row.expires_at).getTime() < Date.now()) return { payload: null };
-    return { payload: row.payload as unknown };
+    if (!row) return { payload: null as string | null };
+    if (new Date(row.expires_at).getTime() < Date.now()) return { payload: null as string | null };
+    return { payload: JSON.stringify(row.payload) as string | null };
   });
