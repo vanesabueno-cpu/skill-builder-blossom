@@ -195,3 +195,14 @@
     display: none !important;
   }
 }
+
+/* Vista del CV compartido: se ajusta a pantallas pequeñas */
+.cv-fit {
+  width: 794px;
+  margin: 0 auto;
+}
+@media (max-width: 840px) {
+  .cv-fit {
+    zoom: 0.46;
+  }
+}

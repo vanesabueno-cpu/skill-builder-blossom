@@ -39,8 +39,8 @@ function SharedCv() {
   return (
     <main className="min-h-screen py-8">
       <h1 className="sr-only">Currículum de {cv.nombre || "candidata"}</h1>
-      <div className="mx-auto w-full max-w-[820px] overflow-x-auto px-3">
-        <div className="clay mx-auto w-[794px] rounded-xl bg-white">
+      <div className="mx-auto w-full max-w-[820px] px-3">
+        <div className="clay cv-fit rounded-xl bg-white">
           <CvDocument cv={cv} />
         </div>
       </div>
