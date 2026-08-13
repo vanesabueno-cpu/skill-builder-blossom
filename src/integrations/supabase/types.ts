@@ -14,7 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cv_shares: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          payload: Json
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload: Json
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          token?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

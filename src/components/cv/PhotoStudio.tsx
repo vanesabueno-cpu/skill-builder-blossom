@@ -1,0 +1,207 @@
+import { useEffect, useRef, useState } from "react";
+import { Camera, Check, RotateCcw, ZoomIn } from "lucide-react";
+import { ClayButton } from "./ClayButton";
+
+type Bg = "suave" | "blanco" | "teal" | "crema";
+
+const BGS: Record<Bg, { label: string; from: string; to: string; swatch: string }> = {
+  suave: { label: "Gris estudio", from: "#F2F2F2", to: "#C9C9C9", swatch: "#D6D6D6" },
+  blanco: { label: "Blanco", from: "#FFFFFF", to: "#EDEDED", swatch: "#FFFFFF" },
+  teal: { label: "Verde azulado", from: "#2E8B7F", to: "#134F48", swatch: "#16665D" },
+  crema: { label: "Crema", from: "#F7F1E6", to: "#E2D4BC", swatch: "#EBDCC3" },
+};
+
+const OUT = 640;
+
+export function PhotoStudio({ photo, onChange }: { photo: string | null; onChange: (p: string | null) => void }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [dx, setDx] = useState(0);
+  const [dy, setDy] = useState(0);
+  const [bg, setBg] = useState<Bg>("suave");
+  const [busy, setBusy] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const pickFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSrc(String(reader.result));
+      setZoom(1);
+      setDx(0);
+      setDy(0);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Carga la imagen y calcula el encuadre automático (busca la cara si el navegador puede)
+  useEffect(() => {
+    if (!src) return;
+    let cancelled = false;
+    const img = new Image();
+    img.onload = async () => {
+      if (cancelled) return;
+      imgRef.current = img;
+      try {
+        const FD = (window as unknown as { FaceDetector?: new (o: object) => { detect: (i: unknown) => Promise<{ boundingBox: DOMRectReadOnly }[]> } }).FaceDetector;
+        if (FD) {
+          const faces = await new FD({ fastMode: true, maxDetectedFaces: 1 }).detect(img);
+          const face = faces[0]?.boundingBox;
+          if (face) {
+            const side = Math.min(img.width, img.height);
+            const cx = face.x + face.width / 2;
+            const cy = face.y + face.height * 0.55;
+            setZoom(Math.min(2.6, Math.max(1, side / (face.height * 2.6))));
+            setDx(((img.width / 2 - cx) / side) * 2);
+            setDy(((img.height / 2 - cy) / side) * 2);
+            draw();
+            return;
+          }
+        }
+      } catch {
+        /* sin detección de caras: encuadre por defecto */
+      }
+      // Encuadre por defecto: centrado en el tercio superior (retrato típico)
+      setDy(0.18);
+      draw();
+    };
+    img.src = src;
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]);
+
+  const draw = () => {
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    if (!canvas || !img) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    canvas.width = OUT;
+    canvas.height = OUT;
+
+    const theme = BGS[bg];
+    const grad = ctx.createLinearGradient(0, 0, OUT, OUT);
+    grad.addColorStop(0, theme.from);
+    grad.addColorStop(1, theme.to);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, OUT, OUT);
+
+    const side = Math.min(img.width, img.height) / zoom;
+    const sx = (img.width - side) / 2 - (dx * side) / 2;
+    const sy = (img.height - side) / 2 - (dy * side) / 2;
+    ctx.filter = "contrast(1.06) saturate(1.05) brightness(1.03)";
+    ctx.drawImage(img, sx, sy, side, side, 0, 0, OUT, OUT);
+    ctx.filter = "none";
+
+    // Viñeta suave para un acabado más profesional
+    const vig = ctx.createRadialGradient(OUT / 2, OUT * 0.45, OUT * 0.28, OUT / 2, OUT / 2, OUT * 0.72);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,0.22)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, OUT, OUT);
+  };
+
+  useEffect(draw, [zoom, dx, dy, bg, src]);
+
+  const confirm = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setBusy(true);
+    onChange(canvas.toDataURL("image/jpeg", 0.92));
+    setSrc(null);
+    setBusy(false);
+  };
+
+  return (
+    <div>
+      {photo && !src && (
+        <div className="mb-5 flex items-center gap-4">
+          <img src={photo} alt="Tu foto elegida" className="clay h-28 w-28 rounded-2xl object-cover" />
+          <div>
+            <p className="font-bold">✅ Foto lista</p>
+            <button onClick={() => onChange(null)} className="mt-1 text-sm font-semibold text-accent underline">
+              Quitar foto
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!src && (
+        <label className="clay clay-press inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-berry px-5 py-3 text-base font-bold text-berry-foreground">
+          <Camera size={22} /> Hacer o subir foto
+          <input
+            type="file"
+            accept="image/*"
+            capture="user"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) pickFile(f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      )}
+
+      {src && (
+        <div className="space-y-4">
+          <div className="flex justify-center">
+            <canvas ref={canvasRef} className="clay h-64 w-64 rounded-3xl" />
+          </div>
+
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-sm font-bold">
+              <ZoomIn size={16} /> Acercar
+            </p>
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.02}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-full accent-[oklch(0.53_0.11_185)]"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="mb-2 text-sm font-bold">↔️ Mover</p>
+              <input type="range" min={-1} max={1} step={0.02} value={dx} onChange={(e) => setDx(Number(e.target.value))} className="w-full" />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-bold">↕️ Subir / bajar</p>
+              <input type="range" min={-1} max={1} step={0.02} value={dy} onChange={(e) => setDy(Number(e.target.value))} className="w-full" />
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-bold">🎨 Fondo profesional</p>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(BGS) as Bg[]).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setBg(k)}
+                  className={`clay-press flex items-center gap-2 rounded-full border-2 px-3 py-2 text-sm font-semibold ${bg === k ? "border-primary bg-secondary" : "border-border bg-card"}`}
+                >
+                  <span className="h-5 w-5 rounded-full border border-border" style={{ background: BGS[k].swatch }} />
+                  {BGS[k].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <ClayButton tone="teal" onClick={confirm} disabled={busy}>
+              <Check size={20} /> Usar esta foto
+            </ClayButton>
+            <ClayButton tone="cream" onClick={() => setSrc(null)}>
+              <RotateCcw size={18} /> Cancelar
+            </ClayButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
