@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      cv_progress: {
+        Row: {
+          payload: Json
+          step: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          payload: Json
+          step?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          payload?: Json
+          step?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cv_shares: {
         Row: {
           created_at: string

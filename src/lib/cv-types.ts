@@ -1,9 +1,26 @@
-export type LangCode = "es-ES" | "ar-SA" | "fr-FR";
+import type { UiLang } from "./i18n";
+
+export type LangCode = "es-ES" | "ar-SA" | "fr-FR" | "en-GB";
 
 export const LANGS: { code: LangCode; label: string; flag: string }[] = [
   { code: "es-ES", label: "Español", flag: "🇪🇸" },
   { code: "ar-SA", label: "العربية", flag: "🇲🇦" },
   { code: "fr-FR", label: "Français", flag: "🇫🇷" },
+  { code: "en-GB", label: "English", flag: "🇬🇧" },
+];
+
+export const uiLangOf = (code: LangCode): UiLang =>
+  code.startsWith("ar") ? "ar" : code.startsWith("fr") ? "fr" : code.startsWith("en") ? "en" : "es";
+
+export type SectionId = "perfil" | "experiencia" | "formacion" | "cualidades";
+
+export type CvSection = { id: SectionId; title: string; visible: boolean };
+
+export const DEFAULT_SECTIONS: CvSection[] = [
+  { id: "perfil", title: "Perfil profesional", visible: true },
+  { id: "experiencia", title: "Experiencia y competencias", visible: true },
+  { id: "formacion", title: "Formación", visible: true },
+  { id: "cualidades", title: "Cualidades", visible: true },
 ];
 
 export type Chip = { id: string; label: string; emoji: string };
@@ -77,6 +94,7 @@ export type CvData = {
   sectors: string[];
   experience: string;
   photo: string | null;
+  sections: CvSection[];
 };
 
 export const emptyCv = (): CvData => ({
@@ -92,6 +110,14 @@ export const emptyCv = (): CvData => ({
   sectors: [],
   experience: "",
   photo: null,
+  sections: DEFAULT_SECTIONS.map((s) => ({ ...s })),
+});
+
+export const withDefaults = (cv: Partial<CvData> | null | undefined): CvData => ({
+  ...emptyCv(),
+  ...(cv ?? {}),
+  sections:
+    cv?.sections && cv.sections.length ? cv.sections : DEFAULT_SECTIONS.map((s) => ({ ...s })),
 });
 
 export const labelsOf = (list: Chip[], ids: string[]) =>
