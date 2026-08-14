@@ -1,9 +1,15 @@
 export async function exportNodeToPdf(node: HTMLElement, filename: string) {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import("html2canvas"),
+    import("html2canvas-pro"),
     import("jspdf"),
   ]);
-  const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+  const canvas = await html2canvas(node, {
+    scale: 2,
+    backgroundColor: "#ffffff",
+    useCORS: true,
+    logging: false,
+    windowWidth: 794,
+  });
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
