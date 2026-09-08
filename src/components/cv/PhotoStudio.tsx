@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Camera, Check, RotateCcw, ZoomIn } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Camera, Check, ImageIcon, RotateCcw, ZoomIn } from "lucide-react";
 import { ClayButton } from "./ClayButton";
 
 type Bg = "suave" | "blanco" | "teal" | "crema";
@@ -15,6 +15,7 @@ const OUT = 640;
 
 export function PhotoStudio({ photo, onChange }: { photo: string | null; onChange: (p: string | null) => void }) {
   const [src, setSrc] = useState<string | null>(null);
+  const [ready, setReady] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
@@ -26,15 +27,19 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
   const pickFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
-      setSrc(String(reader.result));
+      imgRef.current = null;
+      setReady(0);
       setZoom(1);
       setDx(0);
       setDy(0);
+      setSrc(String(reader.result));
     };
+    reader.onerror = () => setSrc(null);
     reader.readAsDataURL(file);
   };
 
-  // Carga la imagen y calcula el encuadre automático (busca la cara si el navegador puede)
+  // 1) Carga la imagen y calcula el encuadre automático. No dibuja aquí:
+  //    el dibujado ocurre siempre en el efecto de abajo, cuando el canvas ya existe.
   useEffect(() => {
     if (!src) return;
     let cancelled = false;
@@ -42,40 +47,49 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
     img.onload = async () => {
       if (cancelled) return;
       imgRef.current = img;
+      let z = 1;
+      let ox = 0;
+      let oy = 0.18;
       try {
-        const FD = (window as unknown as { FaceDetector?: new (o: object) => { detect: (i: unknown) => Promise<{ boundingBox: DOMRectReadOnly }[]> } }).FaceDetector;
+        const FD = (
+          window as unknown as {
+            FaceDetector?: new (o: object) => { detect: (i: unknown) => Promise<{ boundingBox: DOMRectReadOnly }[]> };
+          }
+        ).FaceDetector;
         if (FD) {
           const faces = await new FD({ fastMode: true, maxDetectedFaces: 1 }).detect(img);
           const face = faces[0]?.boundingBox;
-          if (face) {
+          if (face && !cancelled) {
             const side = Math.min(img.width, img.height);
             const cx = face.x + face.width / 2;
             const cy = face.y + face.height * 0.55;
-            setZoom(Math.min(2.6, Math.max(1, side / (face.height * 2.6))));
-            setDx(((img.width / 2 - cx) / side) * 2);
-            setDy(((img.height / 2 - cy) / side) * 2);
-            draw();
-            return;
+            z = Math.min(2.6, Math.max(1, side / (face.height * 2.6)));
+            ox = ((img.width / 2 - cx) / side) * 2;
+            oy = ((img.height / 2 - cy) / side) * 2;
           }
         }
       } catch {
         /* sin detección de caras: encuadre por defecto */
       }
-      // Encuadre por defecto: centrado en el tercio superior (retrato típico)
-      setDy(0.18);
-      draw();
+      if (cancelled) return;
+      setZoom(z);
+      setDx(ox);
+      setDy(oy);
+      setReady((n) => n + 1);
+    };
+    img.onerror = () => {
+      if (!cancelled) setSrc(null);
     };
     img.src = src;
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
-  const draw = () => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
-    if (!canvas || !img) return;
+    if (!canvas || !img || !img.width) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     canvas.width = OUT;
@@ -95,23 +109,38 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
     ctx.drawImage(img, sx, sy, side, side, 0, 0, OUT, OUT);
     ctx.filter = "none";
 
-    // Viñeta suave para un acabado más profesional
     const vig = ctx.createRadialGradient(OUT / 2, OUT * 0.45, OUT * 0.28, OUT / 2, OUT / 2, OUT * 0.72);
     vig.addColorStop(0, "rgba(0,0,0,0)");
     vig.addColorStop(1, "rgba(0,0,0,0.22)");
     ctx.fillStyle = vig;
     ctx.fillRect(0, 0, OUT, OUT);
-  };
+  }, [bg, zoom, dx, dy]);
 
-  useEffect(draw, [zoom, dx, dy, bg, src]);
+  // 2) Dibuja siempre después del render (canvas montado + imagen lista).
+  useEffect(() => {
+    draw();
+  }, [draw, ready, src]);
 
   const confirm = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     setBusy(true);
+    draw();
     onChange(canvas.toDataURL("image/jpeg", 0.92));
+    imgRef.current = null;
     setSrc(null);
     setBusy(false);
+  };
+
+  const inputProps = {
+    type: "file" as const,
+    accept: "image/*",
+    className: "hidden",
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      if (f) pickFile(f);
+      e.target.value = "";
+    },
   };
 
   return (
@@ -129,26 +158,22 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
       )}
 
       {!src && (
-        <label className="clay clay-press inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-berry px-5 py-3 text-base font-bold text-berry-foreground">
-          <Camera size={22} /> Hacer o subir foto
-          <input
-            type="file"
-            accept="image/*"
-            capture="user"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) pickFile(f);
-              e.target.value = "";
-            }}
-          />
-        </label>
+        <div className="flex flex-wrap gap-3">
+          <label className="clay clay-press inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-berry px-5 py-3 text-base font-bold text-berry-foreground">
+            <Camera size={22} /> Hacer foto
+            <input {...inputProps} capture="user" />
+          </label>
+          <label className="clay clay-press inline-flex cursor-pointer items-center gap-2 rounded-2xl border-2 border-border bg-card px-5 py-3 text-base font-bold">
+            <ImageIcon size={22} /> Subir imagen
+            <input {...inputProps} />
+          </label>
+        </div>
       )}
 
       {src && (
         <div className="space-y-4">
           <div className="flex justify-center">
-            <canvas ref={canvasRef} className="clay h-64 w-64 rounded-3xl" />
+            <canvas ref={canvasRef} className="clay h-64 w-64 rounded-3xl bg-muted" />
           </div>
 
           <div>
@@ -162,7 +187,7 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
               step={0.02}
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
-              className="w-full accent-[oklch(0.53_0.11_185)]"
+              className="w-full"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -196,7 +221,13 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
             <ClayButton tone="teal" onClick={confirm} disabled={busy}>
               <Check size={20} /> Usar esta foto
             </ClayButton>
-            <ClayButton tone="cream" onClick={() => setSrc(null)}>
+            <ClayButton
+              tone="cream"
+              onClick={() => {
+                imgRef.current = null;
+                setSrc(null);
+              }}
+            >
               <RotateCcw size={18} /> Cancelar
             </ClayButton>
           </div>
