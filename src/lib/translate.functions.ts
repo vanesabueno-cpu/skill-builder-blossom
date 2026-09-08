@@ -2,11 +2,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const schema = z.object({
-  texts: z.array(z.string()).min(1).max(20),
+  texts: z.array(z.string()).min(1).max(30),
   sourceLang: z.string().default("auto"),
+  targetLang: z.string().default("es"),
 });
 
 const MODELS = ["claude-sonnet-4-6", "claude-sonnet-4-5", "claude-3-5-sonnet-latest"];
+
+const NAMES: Record<string, string> = {
+  es: "español",
+  fr: "francés",
+  en: "inglés",
+  ar: "árabe",
+};
+
+const nameOf = (code: string) => NAMES[code.slice(0, 2)] ?? "el idioma original";
 
 export const translateTexts = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => schema.parse(input))
@@ -14,11 +24,11 @@ export const translateTexts = createServerFn({ method: "POST" })
     const apiKey = process.env["ANTHROPIC_API_KEY"];
     if (!apiKey) throw new Error("Falta la clave de traducción");
 
-    const langName =
-      data.sourceLang.startsWith("ar") ? "árabe" : data.sourceLang.startsWith("fr") ? "francés" : "el idioma original";
+    const from = nameOf(data.sourceLang);
+    const to = nameOf(data.targetLang);
 
     const numbered = data.texts.map((t, i) => `${i + 1}. ${t.replace(/\n/g, " ⏎ ")}`).join("\n");
-    const prompt = `Traduce al español los siguientes textos escritos o dictados en ${langName}. Adáptalos a un tono profesional, claro y natural, apto para un currículum. Mantén el mismo número de líneas y el mismo orden. Devuelve SOLO las líneas numeradas con la traducción, sin comentarios.\n\n${numbered}`;
+    const prompt = `Traduce a ${to} los siguientes textos escritos o dictados en ${from}. Adáptalos a un tono profesional, claro y natural, apto para un currículum. Mantén el mismo número de líneas y el mismo orden. Devuelve SOLO las líneas numeradas con la traducción, sin comentarios.\n\n${numbered}`;
 
     let lastError = "";
     for (const model of MODELS) {
@@ -29,7 +39,7 @@ export const translateTexts = createServerFn({ method: "POST" })
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
         },
-        body: JSON.stringify({ model, max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
+        body: JSON.stringify({ model, max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
       });
       if (!res.ok) {
         lastError = await res.text();

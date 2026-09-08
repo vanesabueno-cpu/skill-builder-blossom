@@ -194,7 +194,16 @@
   .no-print {
     display: none !important;
   }
+  .print-area {
+    position: static !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+  body {
+    background: #ffffff !important;
+  }
 }
+
 
 /* Vista del CV compartido: se ajusta a pantallas pequeñas */
 .cv-fit {
