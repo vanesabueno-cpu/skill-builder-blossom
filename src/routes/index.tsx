@@ -736,7 +736,7 @@ function Wizard() {
                   {working === "pdf" ? <Loader2 className="animate-spin" size={20} /> : ats.canExport ? <Download size={20} /> : <Lock size={20} />}{" "}
                   {d.downloadPdf}
                 </ClayButton>
-                <ClayButton tone="sky" onClick={downloadDocx} disabled={working !== null || !ats.canExport}>
+                <ClayButton tone="leaf" onClick={downloadDocx} disabled={working !== null || !ats.canExport}>
                   {working === "docx" ? <Loader2 className="animate-spin" size={20} /> : <FileText size={20} />} {d.downloadDocx}
                 </ClayButton>
                 {cv.lang !== "es-ES" && (
