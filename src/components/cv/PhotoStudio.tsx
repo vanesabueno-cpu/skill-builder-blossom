@@ -24,6 +24,9 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
   const [dy, setDy] = useState(0);
   const [bg, setBg] = useState<Bg>("suave");
   const [busy, setBusy] = useState(false);
+  const [pro, setPro] = useState<{ before: string; after: string } | null>(null);
+  const [proBusy, setProBusy] = useState(false);
+  const enhance = useServerFn(enhancePhoto);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
