@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Check, ImageIcon, RotateCcw, ZoomIn } from "lucide-react";
+import { Camera, Check, ImageIcon, Loader2, RotateCcw, Sparkles, ZoomIn } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { ClayButton } from "./ClayButton";
+import { enhancePhoto } from "@/lib/ai-photo.functions";
 
 type Bg = "suave" | "blanco" | "teal" | "crema";
 
@@ -21,6 +24,9 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
   const [dy, setDy] = useState(0);
   const [bg, setBg] = useState<Bg>("suave");
   const [busy, setBusy] = useState(false);
+  const [pro, setPro] = useState<{ before: string; after: string } | null>(null);
+  const [proBusy, setProBusy] = useState(false);
+  const enhance = useServerFn(enhancePhoto);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -132,6 +138,20 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
     setBusy(false);
   };
 
+  const makePro = async () => {
+    if (!photo) return;
+    const before = pro?.before ?? photo;
+    setProBusy(true);
+    try {
+      const { image } = await enhance({ data: { image: before } });
+      setPro({ before, after: image });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo generar la foto profesional.");
+    } finally {
+      setProBusy(false);
+    }
+  };
+
   const inputProps = {
     type: "file" as const,
     accept: "image/*",
@@ -146,13 +166,73 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
   return (
     <div>
       {photo && !src && (
-        <div className="mb-5 flex items-center gap-4">
-          <img src={photo} alt="Tu foto elegida" className="clay h-28 w-28 rounded-2xl object-cover" />
-          <div>
-            <p className="font-bold">✅ Foto lista</p>
-            <button onClick={() => onChange(null)} className="mt-1 text-sm font-semibold text-accent underline">
-              Quitar foto
-            </button>
+        <div className="mb-5">
+          <div className="flex items-center gap-4">
+            <img src={photo} alt="Tu foto elegida" className="clay h-28 w-28 rounded-2xl object-cover" />
+            <div>
+              <p className="font-bold">✅ Foto lista</p>
+              <button
+                onClick={() => {
+                  setPro(null);
+                  onChange(null);
+                }}
+                className="mt-1 text-sm font-semibold text-accent underline"
+              >
+                Quitar foto
+              </button>
+            </div>
+          </div>
+
+          <div className="clay mt-4 rounded-3xl border-2 border-gold bg-secondary p-4">
+            <p className="text-sm font-bold">✨ Foto de perfil profesional</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Fondo blanco, encuadre de cabeza y hombros, luz y color corregidos y expresión serena.
+            </p>
+
+            {pro && (
+              <div className="mb-3 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="mb-1 text-xs font-bold">Antes</p>
+                  <img src={pro.before} alt="Foto original" className="clay w-full rounded-2xl object-cover" />
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-bold">Después</p>
+                  <img src={pro.after} alt="Foto profesional generada" className="clay w-full rounded-2xl object-cover" />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <ClayButton tone="gold" onClick={() => void makePro()} disabled={proBusy}>
+                {proBusy ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}{" "}
+                {pro ? "Volver a intentar" : "Generar foto profesional"}
+              </ClayButton>
+              {pro && (
+                <>
+                  <ClayButton
+                    tone="teal"
+                    onClick={() => {
+                      onChange(pro.after);
+                      setPro(null);
+                      toast.success("Foto profesional aplicada");
+                    }}
+                    disabled={proBusy}
+                  >
+                    <Check size={18} /> Usar la nueva
+                  </ClayButton>
+                  <ClayButton
+                    tone="cream"
+                    onClick={() => {
+                      onChange(pro.before);
+                      setPro(null);
+                    }}
+                    disabled={proBusy}
+                  >
+                    <RotateCcw size={18} /> Dejar la original
+                  </ClayButton>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

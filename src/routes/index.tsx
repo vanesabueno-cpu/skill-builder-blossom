@@ -25,6 +25,7 @@ import { PhotoStudio } from "@/components/cv/PhotoStudio";
 import { AtsPanel, atsStatus } from "@/components/cv/AtsPanel";
 import { SectionEditor } from "@/components/cv/SectionEditor";
 import { HelpBar } from "@/components/cv/HelpBar";
+import { AiWrite } from "@/components/cv/AiWrite";
 import { exportNodeToPdf } from "@/lib/cv-pdf";
 import { exportCvToDocx } from "@/lib/cv-docx";
 import { clearProgress, loadProgress, saveProgress } from "@/lib/cv-storage";
@@ -399,12 +400,12 @@ function Wizard() {
   const pullCloud = async () => {
     setWorking("cloud");
     try {
-      const res = await cloudLoad({ data: {} });
+      const res = await cloudLoad();
       if (!res.found) {
         toast.info("Todavía no hay nada guardado en la nube.");
         return;
       }
-      const remote = withDefaults(res.payload as Partial<CvData>);
+      const remote = withDefaults(JSON.parse(res.payload) as Partial<CvData>);
       if (cv.nombre && JSON.stringify(remote) !== JSON.stringify(cv)) {
         setConflict({ data: remote, step: res.step, updatedAt: res.updatedAt });
       } else {
@@ -530,6 +531,7 @@ function Wizard() {
               <Field label={d.phone} emoji="📞" value={cv.telefono} onChange={(v) => set("telefono", v)} placeholder="612 345 678" />
               <Field label={d.email} emoji="✉️" value={cv.email} onChange={(v) => set("email", v)} placeholder="tunombre@correo.com" />
               <Field label={d.city} emoji="📍" value={cv.ciudad} onChange={(v) => set("ciudad", v)} placeholder="Motril" dir={rtl} />
+              <AiWrite kind="perfil" lang={ui} onWritten={(text) => set("bio", text)} />
               <Field label={d.bio} emoji="😊" multiline dir={rtl} value={cv.bio} onChange={(v) => set("bio", v)} placeholder={d.bioPh} />
             </div>
           )}
@@ -619,6 +621,23 @@ function Wizard() {
               <p className="mt-4 text-sm text-muted-foreground">
                 {cv.qualities.length} / 8 {d.chosen}
               </p>
+              <div className="mt-6">
+                <AiWrite
+                  kind="cualidades"
+                  lang={ui}
+                  hint="Por ejemplo: paciente, ordenada, familia"
+                  onWritten={(text) => set("bio", text)}
+                />
+                <Field
+                  label="Frase sobre tus cualidades (sale en tu perfil)"
+                  emoji="🌟"
+                  multiline
+                  dir={rtl}
+                  value={cv.bio}
+                  onChange={(v) => set("bio", v)}
+                  placeholder={d.bioPh}
+                />
+              </div>
             </div>
           )}
 
@@ -645,6 +664,12 @@ function Wizard() {
                 })}
               </div>
               <div className="mt-6">
+                <AiWrite
+                  kind="experiencia"
+                  lang={ui}
+                  hint="Por ejemplo: cocina, limpieza, niños"
+                  onWritten={(text) => set("experience", text)}
+                />
                 <Field
                   label={d.expLabel}
                   emoji="🗣️"
@@ -711,7 +736,7 @@ function Wizard() {
                   {working === "pdf" ? <Loader2 className="animate-spin" size={20} /> : ats.canExport ? <Download size={20} /> : <Lock size={20} />}{" "}
                   {d.downloadPdf}
                 </ClayButton>
-                <ClayButton tone="sky" onClick={downloadDocx} disabled={working !== null || !ats.canExport}>
+                <ClayButton tone="leaf" onClick={downloadDocx} disabled={working !== null || !ats.canExport}>
                   {working === "docx" ? <Loader2 className="animate-spin" size={20} /> : <FileText size={20} />} {d.downloadDocx}
                 </ClayButton>
                 {cv.lang !== "es-ES" && (
