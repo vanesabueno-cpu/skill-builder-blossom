@@ -138,6 +138,20 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
     setBusy(false);
   };
 
+  const makePro = async () => {
+    if (!photo) return;
+    const before = pro?.before ?? photo;
+    setProBusy(true);
+    try {
+      const { image } = await enhance({ data: { image: before } });
+      setPro({ before, after: image });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo generar la foto profesional.");
+    } finally {
+      setProBusy(false);
+    }
+  };
+
   const inputProps = {
     type: "file" as const,
     accept: "image/*",
