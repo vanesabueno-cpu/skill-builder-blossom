@@ -620,6 +620,23 @@ function Wizard() {
               <p className="mt-4 text-sm text-muted-foreground">
                 {cv.qualities.length} / 8 {d.chosen}
               </p>
+              <div className="mt-6">
+                <AiWrite
+                  kind="cualidades"
+                  lang={ui}
+                  hint="Por ejemplo: paciente, ordenada, familia"
+                  onWritten={(text) => set("bio", text)}
+                />
+                <Field
+                  label="Frase sobre tus cualidades (sale en tu perfil)"
+                  emoji="🌟"
+                  multiline
+                  dir={rtl}
+                  value={cv.bio}
+                  onChange={(v) => set("bio", v)}
+                  placeholder={d.bioPh}
+                />
+              </div>
             </div>
           )}
 
