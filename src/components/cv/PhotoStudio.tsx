@@ -152,13 +152,73 @@ export function PhotoStudio({ photo, onChange }: { photo: string | null; onChang
   return (
     <div>
       {photo && !src && (
-        <div className="mb-5 flex items-center gap-4">
-          <img src={photo} alt="Tu foto elegida" className="clay h-28 w-28 rounded-2xl object-cover" />
-          <div>
-            <p className="font-bold">✅ Foto lista</p>
-            <button onClick={() => onChange(null)} className="mt-1 text-sm font-semibold text-accent underline">
-              Quitar foto
-            </button>
+        <div className="mb-5">
+          <div className="flex items-center gap-4">
+            <img src={photo} alt="Tu foto elegida" className="clay h-28 w-28 rounded-2xl object-cover" />
+            <div>
+              <p className="font-bold">✅ Foto lista</p>
+              <button
+                onClick={() => {
+                  setPro(null);
+                  onChange(null);
+                }}
+                className="mt-1 text-sm font-semibold text-accent underline"
+              >
+                Quitar foto
+              </button>
+            </div>
+          </div>
+
+          <div className="clay mt-4 rounded-3xl border-2 border-gold bg-secondary p-4">
+            <p className="text-sm font-bold">✨ Foto de perfil profesional</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Fondo blanco, encuadre de cabeza y hombros, luz y color corregidos y expresión serena.
+            </p>
+
+            {pro && (
+              <div className="mb-3 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="mb-1 text-xs font-bold">Antes</p>
+                  <img src={pro.before} alt="Foto original" className="clay w-full rounded-2xl object-cover" />
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-bold">Después</p>
+                  <img src={pro.after} alt="Foto profesional generada" className="clay w-full rounded-2xl object-cover" />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <ClayButton tone="gold" onClick={() => void makePro()} disabled={proBusy}>
+                {proBusy ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}{" "}
+                {pro ? "Volver a intentar" : "Generar foto profesional"}
+              </ClayButton>
+              {pro && (
+                <>
+                  <ClayButton
+                    tone="teal"
+                    onClick={() => {
+                      onChange(pro.after);
+                      setPro(null);
+                      toast.success("Foto profesional aplicada");
+                    }}
+                    disabled={proBusy}
+                  >
+                    <Check size={18} /> Usar la nueva
+                  </ClayButton>
+                  <ClayButton
+                    tone="cream"
+                    onClick={() => {
+                      onChange(pro.before);
+                      setPro(null);
+                    }}
+                    disabled={proBusy}
+                  >
+                    <RotateCcw size={18} /> Dejar la original
+                  </ClayButton>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
