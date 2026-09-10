@@ -663,6 +663,12 @@ function Wizard() {
                 })}
               </div>
               <div className="mt-6">
+                <AiWrite
+                  kind="experiencia"
+                  lang={ui}
+                  hint="Por ejemplo: cocina, limpieza, niños"
+                  onWritten={(text) => set("experience", text)}
+                />
                 <Field
                   label={d.expLabel}
                   emoji="🗣️"
