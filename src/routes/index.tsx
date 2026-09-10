@@ -530,6 +530,7 @@ function Wizard() {
               <Field label={d.phone} emoji="📞" value={cv.telefono} onChange={(v) => set("telefono", v)} placeholder="612 345 678" />
               <Field label={d.email} emoji="✉️" value={cv.email} onChange={(v) => set("email", v)} placeholder="tunombre@correo.com" />
               <Field label={d.city} emoji="📍" value={cv.ciudad} onChange={(v) => set("ciudad", v)} placeholder="Motril" dir={rtl} />
+              <AiWrite kind="perfil" lang={ui} onWritten={(text) => set("bio", text)} />
               <Field label={d.bio} emoji="😊" multiline dir={rtl} value={cv.bio} onChange={(v) => set("bio", v)} placeholder={d.bioPh} />
             </div>
           )}
