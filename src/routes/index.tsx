@@ -400,12 +400,12 @@ function Wizard() {
   const pullCloud = async () => {
     setWorking("cloud");
     try {
-      const res = await cloudLoad({ data: {} });
+      const res = await cloudLoad();
       if (!res.found) {
         toast.info("Todavía no hay nada guardado en la nube.");
         return;
       }
-      const remote = withDefaults(res.payload as Partial<CvData>);
+      const remote = withDefaults(JSON.parse(res.payload) as Partial<CvData>);
       if (cv.nombre && JSON.stringify(remote) !== JSON.stringify(cv)) {
         setConflict({ data: remote, step: res.step, updatedAt: res.updatedAt });
       } else {
