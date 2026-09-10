@@ -34,10 +34,10 @@ export const loadCvCloud = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!data) return { found: false as const };
+    if (!data) return { found: false, payload: "", step: 0, updatedAt: "" };
     return {
-      found: true as const,
-      payload: data.payload as Record<string, unknown>,
+      found: true,
+      payload: JSON.stringify(data.payload ?? {}),
       step: data.step,
       updatedAt: data.updated_at,
     };
