@@ -25,6 +25,7 @@ import { PhotoStudio } from "@/components/cv/PhotoStudio";
 import { AtsPanel, atsStatus } from "@/components/cv/AtsPanel";
 import { SectionEditor } from "@/components/cv/SectionEditor";
 import { HelpBar } from "@/components/cv/HelpBar";
+import { AiWrite } from "@/components/cv/AiWrite";
 import { exportNodeToPdf } from "@/lib/cv-pdf";
 import { exportCvToDocx } from "@/lib/cv-docx";
 import { clearProgress, loadProgress, saveProgress } from "@/lib/cv-storage";
