@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Check, ImageIcon, RotateCcw, ZoomIn } from "lucide-react";
+import { Camera, Check, ImageIcon, Loader2, RotateCcw, Sparkles, ZoomIn } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { ClayButton } from "./ClayButton";
+import { enhancePhoto } from "@/lib/ai-photo.functions";
 
 type Bg = "suave" | "blanco" | "teal" | "crema";
 
